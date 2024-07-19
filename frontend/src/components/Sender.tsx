@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 
 export const Sender = () => {
@@ -24,33 +25,35 @@ export const Sender = () => {
         socket.onmessage = async (event) => {
             const message = JSON.parse(event.data);
             if (message.type === 'createAnswer') {
-                await pc.setRemoteDescription(message.sdp);
+                await pc?.setRemoteDescription(message.sdp);
             } else if (message.type === 'iceCandidate') {
-                pc.addIceCandidate(message.candidate);
+                pc?.addIceCandidate(message.candidate);
             }
         }
 
-        const pc = new RTCPeerConnection();
-        setPC(pc);
-        pc.onicecandidate = (event) => {
-            if (event.candidate) {
-                socket?.send(JSON.stringify({
-                    type: 'iceCandidate',
-                    candidate: event.candidate
+        if (!pc) {
+            const newPc = new RTCPeerConnection();
+            setPC(newPc);
+            newPc.onicecandidate = (event) => {
+                if (event.candidate) {
+                    socket.send(JSON.stringify({
+                        type: 'iceCandidate',
+                        candidate: event.candidate
+                    }));
+                }
+            }
+
+            newPc.onnegotiationneeded = async () => {
+                const offer = await newPc.createOffer();
+                await newPc.setLocalDescription(offer);
+                socket.send(JSON.stringify({
+                    type: 'createOffer',
+                    sdp: newPc.localDescription
                 }));
             }
-        }
-
-        pc.onnegotiationneeded = async () => {
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
-            socket?.send(JSON.stringify({
-                type: 'createOffer',
-                sdp: pc.localDescription
-            }));
-        }
             
-        getCameraStreamAndSend(pc);
+            getCameraStreamAndSend(newPc);
+        }
     }
 
     const getCameraStreamAndSend = (pc: RTCPeerConnection) => {

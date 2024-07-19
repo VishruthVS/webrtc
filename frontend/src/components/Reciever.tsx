@@ -1,8 +1,8 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 
 
 export const Receiver = () => {
-    const videoRef=useRef<HTMLVideoElement>(null);
+   // const videoRef=useRef<HTMLVideoElement>(null);
     useEffect(() => {
         const socket = new WebSocket('ws://localhost:8080');
         socket.onopen = () => {
